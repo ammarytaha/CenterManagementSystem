@@ -1,0 +1,22 @@
+{
+  "name": "center-management-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "نظام إدارة السنتر التعليمي — educational center management system (Loop)",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm --workspace server run dev",
+    "dev:client": "npm --workspace client run dev",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "migrate": "npm --workspace server run migrate",
+    "seed": "npm --workspace server run seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

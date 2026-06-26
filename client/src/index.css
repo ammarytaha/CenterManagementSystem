@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Full design-system tokens (light/dark CSS custom properties) are added in
+   Milestone 5. For now, just a sane Arabic-friendly default. */
+body {
+  font-family: 'Roboto', system-ui, sans-serif;
+  margin: 0;
+}
