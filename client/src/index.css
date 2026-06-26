@@ -2,9 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Full design-system tokens (light/dark CSS custom properties) are added in
-   Milestone 5. For now, just a sane Arabic-friendly default. */
-body {
-  font-family: 'Roboto', system-ui, sans-serif;
-  margin: 0;
+/* ==========================================================================
+   Design-system tokens (from .claude/skills/design-system/colors.md).
+   Declared as CSS custom properties so light/dark resolve automatically via
+   prefers-color-scheme — never swap colors manually. tailwind.config.js maps
+   semantic utility names (bg-brand, text-heading, border-default, …) to these.
+   ========================================================================== */
+:root {
+  /* neutral backgrounds */
+  --neutral-primary-soft: #ffffff;
+  --neutral-primary: #ffffff;
+  --neutral-primary-medium: #ffffff;
+  --neutral-primary-strong: #ffffff;
+  --neutral-secondary-soft: #f9fafb;
+  --neutral-secondary: #f9fafb;
+  --neutral-secondary-medium: #f9fafb;
+  --neutral-secondary-strong: #f9fafb;
+  --neutral-tertiary-soft: #f3f4f6;
+  --neutral-tertiary: #f3f4f6;
+  --neutral-tertiary-medium: #f3f4f6;
+  --neutral-quaternary: #e5e7eb;
+  --quaternary-medium: #e5e7eb;
+  --gray: #d1d5dc;
+
+  /* brand */
+  --brand-softer: #faf5ff;
+  --brand-soft: #f3e8ff;
+  --brand: #7e22cf;
+  --brand-medium: #e9d5ff;
+  --brand-strong: #6b21a8;
+
+  /* status */
+  --success-soft: #ecfdf5;
+  --success: #007a55;
+  --success-medium: #d0fae5;
+  --success-strong: #006045;
+  --danger-soft: #fef0f2;
+  --danger: #c70036;
+  --danger-medium: #ffe4e6;
+  --danger-strong: #a50036;
+  --warning-soft: #fff7ed;
+  --warning: #f97316;
+  --warning-medium: #ffedd5;
+  --warning-strong: #c2410c;
+
+  /* utility */
+  --dark: #1f2937;
+  --dark-strong: #111827;
+  --disabled: #f3f4f6;
+
+  /* text */
+  --white: #ffffff;
+  --heading: #111827;
+  --body: #4b5563;
+  --body-subtle: #6b7280;
+
+  /* foreground / accents */
+  --fg-brand-subtle: #e9d5ff;
+  --fg-brand: #7e22cf;
+  --fg-brand-strong: #6b21a8;
+  --fg-success: #047857;
+  --fg-success-strong: #065f46;
+  --fg-danger: #be123c;
+  --fg-danger-strong: #881337;
+  --fg-warning-subtle: #ea580c;
+  --fg-warning: #7c2d12;
+  --fg-disabled: #9ca3af;
+
+  /* borders */
+  --border-default-subtle: #e5e7eb;
+  --border-default: #e5e7eb;
+  --border-default-medium: #e5e7eb;
+  --border-default-strong: #e5e7eb;
+  --border-success-subtle: #a7f3d0;
+  --border-success: #047857;
+  --border-danger-subtle: #fecdd3;
+  --border-danger: #be123c;
+  --border-warning-subtle: #fed7aa;
+  --border-warning: #ea580c;
+  --border-brand-subtle: #e9d5ff;
+  --border-brand: #7e22cf;
+  --border-buffer: #ffffff;
+
+  /* shadows (same in both modes) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* button glint highlight/glow */
+  --color-1-400: rgba(255, 255, 255, 0.25);
+  --color-1-700: rgba(0, 0, 0, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --neutral-primary-soft: #101828;
+    --neutral-primary: #030712;
+    --neutral-primary-medium: #1e2939;
+    --neutral-primary-strong: #333e4f;
+    --neutral-secondary-soft: #101828;
+    --neutral-secondary: #030712;
+    --neutral-secondary-medium: #1e2939;
+    --neutral-secondary-strong: #333e4f;
+    --neutral-tertiary-soft: #101828;
+    --neutral-tertiary: #1e2939;
+    --neutral-tertiary-medium: #333e4f;
+    --neutral-quaternary: #333e4f;
+    --quaternary-medium: #4a5565;
+    --gray: #4a5565;
+
+    --brand-softer: #3b0764;
+    --brand-soft: #581c87;
+    --brand: #9333ea;
+    --brand-medium: #581c87;
+    --brand-strong: #7e22cf;
+
+    --success-soft: #002c22;
+    --success: #009966;
+    --success-medium: #004f3b;
+    --success-strong: #007a55;
+    --danger-soft: #4d0218;
+    --danger: #c70036;
+    --danger-medium: #8b0836;
+    --danger-strong: #a50036;
+    --warning-soft: #7c2d12;
+    --warning: #f97316;
+    --warning-medium: #7c2d12;
+    --warning-strong: #c2410c;
+
+    --dark: #1f2937;
+    --dark-strong: #374151;
+    --disabled: #1f2937;
+
+    --heading: #ffffff;
+    --body: #9ca3af;
+    --body-subtle: #9ca3af;
+
+    --fg-brand-subtle: #581c87;
+    --fg-brand: #a855f7;
+    --fg-brand-strong: #e9d5ff;
+    --fg-success: #065f46;
+    --fg-success-strong: #10b981;
+    --fg-danger: #f43f5e;
+    --fg-danger-strong: #f87171;
+    --fg-warning-subtle: #f97316;
+    --fg-warning: #fbbf24;
+    --fg-disabled: #6b7280;
+
+    --border-default-subtle: #111827;
+    --border-default: #1f2937;
+    --border-default-medium: #374151;
+    --border-default-strong: #4b5563;
+    --border-success-subtle: #064e3b;
+    --border-success: #065f46;
+    --border-danger-subtle: #881337;
+    --border-danger: #be123c;
+    --border-warning-subtle: #7c2d12;
+    --border-warning: #f97316;
+    --border-brand-subtle: #581c87;
+    --border-brand: #a855f7;
+    --border-buffer: #030712;
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    font-family: 'Roboto', system-ui, sans-serif;
+    background-color: var(--neutral-secondary-soft);
+    color: var(--body);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading);
+    font-weight: 600;
+  }
 }
