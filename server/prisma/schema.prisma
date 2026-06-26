@@ -1,0 +1,178 @@
+// Center Management System — data model.
+// Tables use snake_case via @map; Prisma client fields stay camelCase.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  admin
+  staff
+  accountant
+}
+
+enum StudentStatus {
+  active
+  inactive
+}
+
+enum CompensationType {
+  salary
+  percentage
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+}
+
+enum SubscriptionStatus {
+  active
+  inactive
+}
+
+enum PaymentMethod {
+  vodafone_cash
+  instapay
+  cash
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         Role     @default(staff)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Payments this user recorded (staff/accountant who logged the payment).
+  payments Payment[] @relation("StaffPayments")
+
+  @@map("users")
+}
+
+model Student {
+  id          Int           @id @default(autoincrement())
+  name        String
+  phone       String
+  address     String?
+  parentName  String?       @map("parent_name")
+  parentPhone String?       @map("parent_phone")
+  // Optional "primary group" for the simple add-student flow. Real enrollment
+  // (incl. per-group fee) lives in Subscription.
+  groupId     Int?          @map("group_id")
+  status      StudentStatus @default(active)
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  group         Group?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  attendance    Attendance[]
+  payments      Payment[]
+  subscriptions Subscription[]
+
+  @@index([groupId])
+  @@map("students")
+}
+
+model Teacher {
+  id                Int              @id @default(autoincrement())
+  name              String
+  phone             String
+  subject           String
+  compensationType  CompensationType @map("compensation_type")
+  compensationValue Decimal          @map("compensation_value") @db.Decimal(10, 2)
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  groups Group[]
+
+  @@map("teachers")
+}
+
+model Group {
+  id           Int      @id @default(autoincrement())
+  name         String
+  teacherId    Int      @map("teacher_id")
+  subject      String
+  scheduleDays String[] @map("schedule_days") // e.g. ["sat","mon","wed"]
+  startTime    String   @map("start_time") // "HH:mm"
+  endTime      String   @map("end_time") // "HH:mm"
+  monthlyFee   Decimal  @map("monthly_fee") @db.Decimal(10, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  teacher       Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  students      Student[]
+  attendance    Attendance[]
+  subscriptions Subscription[]
+
+  @@index([teacherId])
+  @@map("groups")
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  studentId Int              @map("student_id")
+  groupId   Int              @map("group_id")
+  date      DateTime         @db.Date
+  status    AttendanceStatus
+  note      String?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // One record per student per group per day.
+  @@unique([studentId, groupId, date])
+  @@index([groupId, date])
+  @@map("attendance")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  studentId     Int           @map("student_id")
+  amount        Decimal       @db.Decimal(10, 2)
+  month         String // settlement month, "YYYY-MM"
+  paidAt        DateTime      @default(now()) @map("paid_at")
+  receiptNumber String        @unique @map("receipt_number")
+  method        PaymentMethod
+  // External Vodafone Cash / InstaPay transaction id (recording only).
+  reference     String?
+  staffId       Int           @map("staff_id")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  staff   User    @relation("StaffPayments", fields: [staffId], references: [id], onDelete: Restrict)
+
+  @@index([studentId])
+  @@index([month])
+  @@map("payments")
+}
+
+model Subscription {
+  id         Int                @id @default(autoincrement())
+  studentId  Int                @map("student_id")
+  groupId    Int                @map("group_id")
+  startDate  DateTime           @map("start_date") @db.Date
+  monthlyFee Decimal            @map("monthly_fee") @db.Decimal(10, 2)
+  status     SubscriptionStatus @default(active)
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group   Group   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  // A student enrolls in a given group once (the enrollment record).
+  @@unique([studentId, groupId])
+  @@index([studentId])
+  @@map("subscriptions")
+}
