@@ -10,12 +10,15 @@ import {
 } from '../validators/attendanceValidators.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin', 'staff'));
+router.use(authenticate);
+
+// Teachers may mark/view attendance, scoped to their own groups in the controllers.
+const ops = requireRole('admin', 'assistant', 'teacher');
 
 // Specific paths before the generic roster route.
-router.get('/report', validate(attendanceReportQuerySchema, 'query'), ctrl.attendanceReport);
-router.get('/flags', ctrl.attendanceFlags);
-router.get('/', validate(attendanceListQuerySchema, 'query'), ctrl.getRoster);
-router.post('/', validate(markAttendanceSchema), ctrl.markAttendance);
+router.get('/report', ops, validate(attendanceReportQuerySchema, 'query'), ctrl.attendanceReport);
+router.get('/flags', requireRole('admin', 'assistant'), ctrl.attendanceFlags);
+router.get('/', ops, validate(attendanceListQuerySchema, 'query'), ctrl.getRoster);
+router.post('/', ops, validate(markAttendanceSchema), ctrl.markAttendance);
 
 export default router;

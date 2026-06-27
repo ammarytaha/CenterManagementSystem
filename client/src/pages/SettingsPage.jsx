@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { usersApi } from '../api/resources.js';
+import { usersApi, teachersApi } from '../api/resources.js';
 import { apiError } from '../api/client.js';
 import { useAuth } from '../auth/AuthContext.jsx';
 import {
@@ -14,24 +14,33 @@ import { formatDate } from '../lib/format.js';
 
 const ROLE_OPTIONS = [
   ['admin', 'مدير'],
-  ['staff', 'موظف'],
-  ['accountant', 'محاسب'],
+  ['assistant', 'مساعد'],
+  ['teacher', 'مدرّس'],
 ];
 
 function UserFormModal({ open, onClose, editing }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(() =>
     editing
-      ? { name: editing.name, email: editing.email, role: editing.role, password: '' }
-      : { name: '', email: '', role: 'staff', password: '' }
+      ? { name: editing.name, email: editing.email, role: editing.role, password: '', teacherId: editing.teacher?.id ? String(editing.teacher.id) : '' }
+      : { name: '', email: '', role: 'assistant', password: '', teacherId: '' }
   );
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Teacher profiles to link a teacher login to.
+  const { data: teachersData } = useQuery({
+    queryKey: ['teachers'],
+    queryFn: teachersApi.list,
+    enabled: form.role === 'teacher',
+  });
+  const teachers = teachersData?.teachers || [];
 
   const mutation = useMutation({
     mutationFn: (payload) => (editing ? usersApi.update(editing.id, payload) : usersApi.create(payload)),
     onSuccess: () => {
       toast.success(editing ? 'تم تحديث المستخدم' : 'تمت إضافة المستخدم');
       qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['teachers'] });
       onClose();
     },
     onError: (err) => toast.error(apiError(err)),
@@ -41,6 +50,8 @@ function UserFormModal({ open, onClose, editing }) {
     e.preventDefault();
     const payload = { name: form.name.trim(), email: form.email.trim(), role: form.role };
     if (!editing) payload.password = form.password;
+    if (form.role === 'teacher') payload.teacherId = form.teacherId ? Number(form.teacherId) : null;
+    else if (editing) payload.teacherId = null; // unlink when switching away from teacher
     mutation.mutate(payload);
   };
 
@@ -59,6 +70,18 @@ function UserFormModal({ open, onClose, editing }) {
             {ROLE_OPTIONS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
           </Select>
         </Field>
+        {form.role === 'teacher' && (
+          <Field label="ربط بملف مدرّس" htmlFor="u-teacher" hint="ملف المدرّس الذي سيستخدم هذا الحساب لتسجيل الدخول">
+            <Select id="u-teacher" value={form.teacherId} onChange={set('teacherId')}>
+              <option value="">— بدون ربط —</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}{t.userId && t.userId !== editing?.id ? ' (مرتبط بحساب آخر)' : ''}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         {!editing && (
           <Field label="كلمة المرور" htmlFor="u-pass" hint="6 أحرف على الأقل">
             <Input id="u-pass" type="password" value={form.password} onChange={set('password')} required minLength={6} />
@@ -138,7 +161,10 @@ export default function SettingsPage() {
               <Tr key={u.id}>
                 <Td className="font-medium text-heading">{u.name}{u.id === me.id && <span className="text-body-subtle"> (أنت)</span>}</Td>
                 <Td dir="ltr" className="text-start">{u.email}</Td>
-                <Td><Badge variant={u.role === 'admin' ? 'brand' : 'gray'}>{ROLE_LABELS[u.role]}</Badge></Td>
+                <Td>
+                  <Badge variant={u.role === 'admin' ? 'brand' : 'gray'}>{ROLE_LABELS[u.role]}</Badge>
+                  {u.teacher && <span className="ms-2 text-xs text-body-subtle">{u.teacher.name}</span>}
+                </Td>
                 <Td>{formatDate(u.createdAt)}</Td>
                 <Td className="text-end">
                   <div className="flex items-center justify-end gap-1">

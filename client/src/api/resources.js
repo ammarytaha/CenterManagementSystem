@@ -26,6 +26,7 @@ export const studentsApi = {
 export const teachersApi = {
   list: () => data(api.get('/teachers')),
   get: (id, params) => data(api.get(`/teachers/${id}`, { params })),
+  me: (params) => data(api.get('/teachers/me', { params })),
   create: (payload) => data(api.post('/teachers', payload)),
   update: (id, payload) => data(api.put(`/teachers/${id}`, payload)),
 };

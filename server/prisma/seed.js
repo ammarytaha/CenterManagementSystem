@@ -50,11 +50,8 @@ async function main() {
   const admin = await prisma.user.create({
     data: { name: 'مدير النظام', email: 'admin@loop.eg', role: 'admin', passwordHash },
   });
-  const staff = await prisma.user.create({
-    data: { name: 'موظف الاستقبال', email: 'staff@loop.eg', role: 'staff', passwordHash },
-  });
-  await prisma.user.create({
-    data: { name: 'المحاسب', email: 'accountant@loop.eg', role: 'accountant', passwordHash },
+  const assistant = await prisma.user.create({
+    data: { name: 'مساعد الإدارة', email: 'assistant@loop.eg', role: 'assistant', passwordHash },
   });
 
   // --- Teachers ---
@@ -65,9 +62,22 @@ async function main() {
     { name: 'أ. سارة كمال', subject: 'كيمياء', compensationType: 'salary', compensationValue: 7000 },
     { name: 'أ. خالد إبراهيم', subject: 'لغة إنجليزية', compensationType: 'percentage', compensationValue: 35 },
   ];
+  // Each teacher also gets a login (role=teacher) linked to their profile so
+  // they can sign in and see only their own groups.
   const teachers = [];
-  for (const t of teacherDefs) {
-    teachers.push(await prisma.teacher.create({ data: { ...t, phone: phone('010') } }));
+  for (let i = 0; i < teacherDefs.length; i += 1) {
+    const t = teacherDefs[i];
+    const teacher = await prisma.teacher.create({ data: { ...t, phone: phone('010') } });
+    const login = await prisma.user.create({
+      data: {
+        name: t.name,
+        email: i === 0 ? 'teacher@loop.eg' : `teacher${i + 1}@loop.eg`,
+        role: 'teacher',
+        passwordHash,
+      },
+    });
+    await prisma.teacher.update({ where: { id: teacher.id }, data: { userId: login.id } });
+    teachers.push(teacher);
   }
 
   // --- Groups ---
@@ -133,7 +143,7 @@ async function main() {
         const paidAt = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), 5 + Math.floor(rand() * 12)));
         payments.push({
           studentId: s.id, amount: s.totalFee, month: monthKey(m),
-          method: pick(methods), staffId: staff.id, paidAt, receiptNumber: nextReceipt(paidAt),
+          method: pick(methods), staffId: assistant.id, paidAt, receiptNumber: nextReceipt(paidAt),
         });
       }
     }
@@ -141,7 +151,7 @@ async function main() {
       const paidAt = new Date();
       payments.push({
         studentId: s.id, amount: s.totalFee, month: monthKey(firstOfMonth(0)),
-        method: pick(methods), staffId: staff.id, paidAt, receiptNumber: nextReceipt(paidAt),
+        method: pick(methods), staffId: assistant.id, paidAt, receiptNumber: nextReceipt(paidAt),
       });
     }
   }
@@ -169,7 +179,7 @@ async function main() {
   await prisma.attendance.createMany({ data: attendance, skipDuplicates: true });
 
   console.log('✔ Seed complete');
-  console.log(`  users:    admin@loop.eg · staff@loop.eg · accountant@loop.eg  (password: password123)`);
+  console.log(`  users:    admin@loop.eg · assistant@loop.eg · teacher@loop.eg  (password: password123)`);
   console.log(`  teachers: ${teachers.length}  groups: ${groups.length}  students: ${studentsInfo.length}`);
   console.log(`  payments: ${payments.length}  attendance: ${attendance.length}`);
 }

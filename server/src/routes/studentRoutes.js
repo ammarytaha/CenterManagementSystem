@@ -11,7 +11,7 @@ import {
 } from '../validators/studentValidators.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin', 'staff'));
+router.use(authenticate, requireRole('admin', 'assistant'));
 
 router.get('/', validate(studentListQuerySchema, 'query'), ctrl.listStudents);
 router.post('/', validate(createStudentSchema), ctrl.createStudent);

@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { badRequest } from '../utils/httpError.js';
 import { round2 } from '../utils/money.js';
+import { assertTeacherOwnsGroup, teacherGroupIds } from '../utils/teacherScope.js';
 
 const toDate = (d) => new Date(`${d}T00:00:00.000Z`);
 
@@ -10,6 +11,7 @@ const toDate = (d) => new Date(`${d}T00:00:00.000Z`);
 // that date (so the UI can prefill).
 export const getRoster = asyncHandler(async (req, res) => {
   const { groupId, date } = req.query;
+  await assertTeacherOwnsGroup(req, groupId);
   const group = await prisma.group.findUnique({ where: { id: groupId }, select: { id: true, name: true } });
   if (!group) throw badRequest('المجموعة غير موجودة');
 
@@ -34,6 +36,7 @@ export const getRoster = asyncHandler(async (req, res) => {
 // POST /api/attendance  (bulk upsert for a group + date)
 export const markAttendance = asyncHandler(async (req, res) => {
   const { groupId, date, records } = req.body;
+  await assertTeacherOwnsGroup(req, groupId);
   const d = toDate(date);
 
   await prisma.$transaction(
@@ -55,6 +58,11 @@ export const attendanceReport = asyncHandler(async (req, res) => {
   const where = {};
   if (groupId) where.groupId = groupId;
   if (studentId) where.studentId = studentId;
+  // Teachers only see their own groups' attendance.
+  if (req.user.role === 'teacher') {
+    if (groupId) await assertTeacherOwnsGroup(req, groupId);
+    else where.groupId = { in: await teacherGroupIds(req.user.id) };
+  }
 
   const records = await prisma.attendance.findMany({
     where,

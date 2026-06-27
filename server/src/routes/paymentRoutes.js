@@ -7,7 +7,7 @@ import { idParamSchema } from '../validators/commonValidators.js';
 import { createPaymentSchema, paymentListQuerySchema } from '../validators/paymentValidators.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin', 'staff'));
+router.use(authenticate, requireRole('admin', 'assistant'));
 
 router.post('/', validate(createPaymentSchema), ctrl.recordPayment);
 // Specific paths before the generic list route.

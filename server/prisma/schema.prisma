@@ -16,8 +16,8 @@ datasource db {
 
 enum Role {
   admin
-  staff
-  accountant
+  teacher
+  assistant
 }
 
 enum StudentStatus {
@@ -56,11 +56,13 @@ model User {
   name         String
   email        String   @unique
   passwordHash String   @map("password_hash")
-  role         Role     @default(staff)
+  role         Role     @default(assistant)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  // Payments this user recorded (staff/accountant who logged the payment).
+  // Payments this user recorded.
   payments Payment[] @relation("StaffPayments")
+  // Optional teaching profile this login maps to (for role=teacher).
+  teacher  Teacher?  @relation("TeacherLogin")
 
   @@map("users")
 }
@@ -94,8 +96,11 @@ model Teacher {
   subject           String
   compensationType  CompensationType @map("compensation_type")
   compensationValue Decimal          @map("compensation_value") @db.Decimal(10, 2)
+  // Optional login account for this teacher (role=teacher).
+  userId            Int?             @unique @map("user_id")
   createdAt         DateTime         @default(now()) @map("created_at")
 
+  user   User?   @relation("TeacherLogin", fields: [userId], references: [id], onDelete: SetNull)
   groups Group[]
 
   @@map("teachers")

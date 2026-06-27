@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireRole } from '../middleware/requireRole.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin'));
+router.use(authenticate, requireRole('admin', 'assistant'));
 
 router.get('/', ctrl.getDashboard);
 

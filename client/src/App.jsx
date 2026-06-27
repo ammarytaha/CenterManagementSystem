@@ -13,8 +13,10 @@ import AttendancePage from './pages/AttendancePage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
+import MyTeacherPage from './pages/MyTeacherPage.jsx';
 
-const STAFF = ['admin', 'staff'];
+const OPS = ['admin', 'assistant']; // full operations, no user/system admin
+const VIEW = ['admin', 'assistant', 'teacher']; // teacher scoped server-side
 const guard = (element, roles) => <ProtectedRoute roles={roles}>{element}</ProtectedRoute>;
 
 export default function App() {
@@ -29,16 +31,17 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={guard(<DashboardPage />, ['admin'])} />
-        <Route path="/students" element={guard(<StudentsPage />, STAFF)} />
-        <Route path="/students/:id" element={guard(<StudentProfilePage />, STAFF)} />
-        <Route path="/teachers" element={guard(<TeachersPage />, STAFF)} />
-        <Route path="/teachers/:id" element={guard(<TeacherProfilePage />, STAFF)} />
-        <Route path="/groups" element={guard(<GroupsPage />, STAFF)} />
-        <Route path="/groups/:id" element={guard(<GroupDetailPage />, STAFF)} />
-        <Route path="/attendance" element={guard(<AttendancePage />, STAFF)} />
-        <Route path="/payments" element={guard(<PaymentsPage />, STAFF)} />
-        <Route path="/reports" element={guard(<ReportsPage />, ['admin', 'accountant'])} />
+        <Route path="/" element={guard(<DashboardPage />, OPS)} />
+        <Route path="/students" element={guard(<StudentsPage />, OPS)} />
+        <Route path="/students/:id" element={guard(<StudentProfilePage />, OPS)} />
+        <Route path="/teachers" element={guard(<TeachersPage />, OPS)} />
+        <Route path="/teachers/:id" element={guard(<TeacherProfilePage />, OPS)} />
+        <Route path="/groups" element={guard(<GroupsPage />, VIEW)} />
+        <Route path="/groups/:id" element={guard(<GroupDetailPage />, VIEW)} />
+        <Route path="/attendance" element={guard(<AttendancePage />, VIEW)} />
+        <Route path="/payments" element={guard(<PaymentsPage />, OPS)} />
+        <Route path="/reports" element={guard(<ReportsPage />, OPS)} />
+        <Route path="/my" element={guard(<MyTeacherPage />, ['teacher'])} />
         <Route path="/settings" element={guard(<SettingsPage />, ['admin'])} />
       </Route>
 

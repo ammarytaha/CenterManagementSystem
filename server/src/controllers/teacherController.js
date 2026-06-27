@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { badRequest } from '../utils/httpError.js';
 import { getTeacherEarnings } from '../services/earningsService.js';
 import { currentMonthKey, isValidMonthKey } from '../utils/months.js';
+import { teacherIdForUser } from '../utils/teacherScope.js';
 
 // GET /api/teachers
 export const listTeachers = asyncHandler(async (req, res) => {
@@ -27,22 +28,33 @@ export const updateTeacher = asyncHandler(async (req, res) => {
   res.json({ teacher });
 });
 
-// GET /api/teachers/:id  (profile: groups + monthly earnings)
-export const getTeacher = asyncHandler(async (req, res) => {
-  const id = req.params.id;
+// Builds the profile payload (info + groups + monthly earnings) for a teacher.
+async function buildProfile(id, monthParam) {
   const teacher = await prisma.teacher.findUnique({
     where: { id },
     include: { groups: { include: { _count: { select: { subscriptions: true } } } } },
   });
   if (!teacher) throw badRequest('المدرّس غير موجود');
 
-  const month = isValidMonthKey(req.query.month) ? req.query.month : currentMonthKey();
+  const month = isValidMonthKey(monthParam) ? monthParam : currentMonthKey();
   const earnings = await getTeacherEarnings(id, month);
 
   const { groups, ...teacherData } = teacher;
-  res.json({
+  return {
     teacher: teacherData,
     groups: groups.map(({ _count, ...g }) => ({ ...g, studentCount: _count.subscriptions })),
     earnings,
-  });
+  };
+}
+
+// GET /api/teachers/:id  (admin/assistant — any teacher)
+export const getTeacher = asyncHandler(async (req, res) => {
+  res.json(await buildProfile(req.params.id, req.query.month));
+});
+
+// GET /api/teachers/me  (teacher — their own profile + earnings)
+export const getMyProfile = asyncHandler(async (req, res) => {
+  const id = await teacherIdForUser(req.user.id);
+  if (!id) throw badRequest('لا يوجد ملف مدرّس مرتبط بحسابك');
+  res.json(await buildProfile(id, req.query.month));
 });

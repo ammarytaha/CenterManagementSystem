@@ -80,7 +80,7 @@ export default function LoginPage() {
         </Card>
 
         <p className="mt-4 text-center text-xs text-body-subtle">
-          للتجربة: admin@loop.eg · staff@loop.eg · accountant@loop.eg — كلمة المرور: password123
+          للتجربة: admin@loop.eg · assistant@loop.eg · teacher@loop.eg — كلمة المرور: password123
         </p>
       </div>
     </div>

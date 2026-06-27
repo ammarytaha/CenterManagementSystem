@@ -7,11 +7,15 @@ import { idParamSchema } from '../validators/commonValidators.js';
 import { createGroupSchema, updateGroupSchema } from '../validators/groupValidators.js';
 
 const router = Router();
-router.use(authenticate, requireRole('admin', 'staff'));
+router.use(authenticate);
 
-router.get('/', ctrl.listGroups);
-router.post('/', validate(createGroupSchema), ctrl.createGroup);
-router.get('/:id', validate(idParamSchema, 'params'), ctrl.getGroup);
-router.put('/:id', validate(idParamSchema, 'params'), validate(updateGroupSchema), ctrl.updateGroup);
+const manage = requireRole('admin', 'assistant');
+// Teachers may view, but the controller scopes results to their own groups.
+const view = requireRole('admin', 'assistant', 'teacher');
+
+router.get('/', view, ctrl.listGroups);
+router.post('/', manage, validate(createGroupSchema), ctrl.createGroup);
+router.get('/:id', view, validate(idParamSchema, 'params'), ctrl.getGroup);
+router.put('/:id', manage, validate(idParamSchema, 'params'), validate(updateGroupSchema), ctrl.updateGroup);
 
 export default router;

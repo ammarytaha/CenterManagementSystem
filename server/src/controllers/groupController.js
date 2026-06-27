@@ -1,10 +1,14 @@
 import { prisma } from '../config/prisma.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { badRequest } from '../utils/httpError.js';
+import { teacherGroupIds, assertTeacherOwnsGroup } from '../utils/teacherScope.js';
 
 // GET /api/groups
 export const listGroups = asyncHandler(async (req, res) => {
+  // Teachers see only their own groups.
+  const where = req.user.role === 'teacher' ? { id: { in: await teacherGroupIds(req.user.id) } } : {};
   const groups = await prisma.group.findMany({
+    where,
     orderBy: { createdAt: 'desc' },
     include: {
       teacher: { select: { id: true, name: true } },
@@ -42,6 +46,7 @@ export const getGroup = asyncHandler(async (req, res) => {
     },
   });
   if (!group) throw badRequest('المجموعة غير موجودة');
+  await assertTeacherOwnsGroup(req, id);
 
   const { subscriptions, ...groupData } = group;
   const students = subscriptions.map((s) => ({
