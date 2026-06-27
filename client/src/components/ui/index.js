@@ -4,6 +4,7 @@ export * from './Badge.jsx';
 export * from './Input.jsx';
 export * from './Spinner.jsx';
 export * from './Modal.jsx';
+export * from './ConfirmModal.jsx';
 export * from './Table.jsx';
 export * from './StatCard.jsx';
 export * from './EmptyState.jsx';

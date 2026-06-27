@@ -20,5 +20,5 @@ export const studentListQuerySchema = z.object({
   groupId: z.coerce.number().int().positive().optional(),
   status: status.optional(),
   page: z.coerce.number().int().positive().optional().default(1),
-  pageSize: z.coerce.number().int().positive().max(100).optional().default(20),
+  pageSize: z.coerce.number().int().positive().max(500).optional().default(20),
 });
