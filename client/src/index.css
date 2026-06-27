@@ -96,9 +96,11 @@
   --color-1-700: rgba(0, 0, 0, 0.12);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --neutral-primary-soft: #101828;
+/* Dark theme — applied via data-theme="dark" on <html>. The initial value is
+   resolved from the OS preference by the pre-paint script in index.html and
+   managed thereafter by ThemeProvider. */
+:root[data-theme='dark'] {
+  --neutral-primary-soft: #101828;
     --neutral-primary: #030712;
     --neutral-primary-medium: #1e2939;
     --neutral-primary-strong: #333e4f;
@@ -164,7 +166,6 @@
     --border-brand-subtle: #581c87;
     --border-brand: #a855f7;
     --border-buffer: #030712;
-  }
 }
 
 @layer base {
