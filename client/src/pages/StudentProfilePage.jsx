@@ -10,6 +10,7 @@ import {
   TableWrap, Thead, Tbody, Tr, Th, Td,
 } from '../components/ui/index.js';
 import { Icon } from '../components/icons.jsx';
+import { StudentFormModal } from './StudentsPage.jsx';
 import { formatEGP, formatDate, formatMonthKey } from '../lib/format.js';
 import {
   STUDENT_STATUS_LABELS, ATTENDANCE_LABELS, PAYMENT_METHOD_LABELS,
@@ -33,6 +34,8 @@ function SubscriptionsManager({ student }) {
   const canManage = user?.role === 'admin' || user?.role === 'assistant';
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState(null);
+  const [feeEditing, setFeeEditing] = useState(null);
+  const [feeValue, setFeeValue] = useState('');
   const [form, setForm] = useState({ groupId: '', monthlyFee: '' });
 
   const { data: groupsData } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list, enabled: canManage });
@@ -56,6 +59,12 @@ function SubscriptionsManager({ student }) {
     onSuccess: () => { toast.success('تم إلغاء الاشتراك'); invalidate(); setRemoving(null); },
     onError: (err) => toast.error(apiError(err)),
   });
+  // Editing a subscription's monthly fee re-computes the student's dues/balance.
+  const editFee = useMutation({
+    mutationFn: () => studentsApi.addSubscription(student.id, { groupId: feeEditing.group.id, monthlyFee: Number(feeValue) }),
+    onSuccess: () => { toast.success('تم تحديث الرسوم'); invalidate(); setFeeEditing(null); },
+    onError: (err) => toast.error(apiError(err)),
+  });
 
   return (
     <Card className="p-6">
@@ -76,6 +85,11 @@ function SubscriptionsManager({ student }) {
               <span className="text-sm font-medium text-heading">{sub.group.name}</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-body">{formatEGP(sub.monthlyFee)}</span>
+                {canManage && (
+                  <Button variant="ghost" size="icon" onClick={() => { setFeeEditing(sub); setFeeValue(String(sub.monthlyFee)); }} aria-label="تعديل الرسوم">
+                    <Icon name="edit" className="h-4 w-4" />
+                  </Button>
+                )}
                 {canManage && (
                   <Button variant="ghost" size="icon" onClick={() => setRemoving(sub)} aria-label="إلغاء">
                     <Icon name="trash" className="h-4 w-4" />
@@ -104,6 +118,14 @@ function SubscriptionsManager({ student }) {
         </Modal>
       )}
 
+      {feeEditing && (
+        <Modal open onClose={() => setFeeEditing(null)} title={`تعديل رسوم: ${feeEditing.group.name}`} size="sm"
+          footer={<><Button variant="ghost" onClick={() => setFeeEditing(null)}>إلغاء</Button><Button onClick={() => editFee.mutate()} loading={editFee.isPending}>حفظ</Button></>}>
+          <Field label="الرسوم الشهرية (ج.م)" htmlFor="fee-edit" hint="تغيير الرسوم يعيد حساب المبلغ المستحق على الطالب">
+            <Input id="fee-edit" type="number" min="0" step="0.01" dir="ltr" value={feeValue} onChange={(e) => setFeeValue(e.target.value)} />
+          </Field>
+        </Modal>
+      )}
       <ConfirmModal
         open={!!removing}
         onClose={() => setRemoving(null)}
@@ -124,6 +146,10 @@ export default function StudentProfilePage() {
     queryKey: ['student', id],
     queryFn: () => studentsApi.get(id),
   });
+  const { user } = useAuth();
+  const canManage = user?.role === 'admin' || user?.role === 'assistant';
+  const [editOpen, setEditOpen] = useState(false);
+  const { data: groupsData } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list, enabled: canManage });
 
   if (isLoading) return <div className="flex justify-center py-16"><Spinner size={28} className="text-brand" /></div>;
   if (isError || !data) return <EmptyState icon="alert" title="تعذّر تحميل بيانات الطالب" />;
@@ -132,19 +158,26 @@ export default function StudentProfilePage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/students')} aria-label="رجوع">
-          <Icon name="chevronRight" className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-heading">
-            {student.name}
-            <Badge variant={student.status === 'active' ? 'success' : 'gray'}>
-              {STUDENT_STATUS_LABELS[student.status]}
-            </Badge>
-          </h1>
-          <p className="mt-1 text-sm text-body">{student.group?.name || 'بدون مجموعة أساسية'}</p>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/students')} aria-label="رجوع">
+            <Icon name="chevronRight" className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="flex items-center gap-2 text-2xl font-semibold text-heading">
+              {student.name}
+              <Badge variant={student.status === 'active' ? 'success' : 'gray'}>
+                {STUDENT_STATUS_LABELS[student.status]}
+              </Badge>
+            </h1>
+            <p className="mt-1 text-sm text-body">{student.group?.name || 'بدون مجموعة أساسية'}</p>
+          </div>
         </div>
+        {canManage && (
+          <Button variant="secondary" onClick={() => setEditOpen(true)}>
+            <Icon name="edit" className="h-4 w-4" /> تعديل البيانات
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -217,6 +250,15 @@ export default function StudentProfilePage() {
           </TableWrap>
         )}
       </section>
+
+      {editOpen && (
+        <StudentFormModal
+          open={editOpen}
+          editing={student}
+          groups={groupsData?.groups || []}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </div>
   );
 }

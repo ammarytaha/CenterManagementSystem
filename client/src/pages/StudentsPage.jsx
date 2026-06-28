@@ -14,7 +14,7 @@ import { STUDENT_STATUS_LABELS } from '../lib/constants.js';
 const PAGE_SIZE = 10;
 const blank = { name: '', phone: '', address: '', parentName: '', parentPhone: '', groupId: '', status: 'active' };
 
-function StudentFormModal({ open, onClose, groups, editing }) {
+export function StudentFormModal({ open, onClose, groups, editing }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(() =>
     editing
@@ -32,6 +32,7 @@ function StudentFormModal({ open, onClose, groups, editing }) {
     onSuccess: () => {
       toast.success(editing ? 'تم تحديث بيانات الطالب' : 'تمت إضافة الطالب');
       qc.invalidateQueries({ queryKey: ['students'] });
+      qc.invalidateQueries({ queryKey: ['student'] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       onClose();
     },

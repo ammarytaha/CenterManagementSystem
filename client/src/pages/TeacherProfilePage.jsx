@@ -7,6 +7,7 @@ import {
   TableWrap, Thead, Tbody, Tr, Th, Td,
 } from '../components/ui/index.js';
 import { Icon } from '../components/icons.jsx';
+import { TeacherFormModal } from './TeachersPage.jsx';
 import { formatEGP, currentMonthKey } from '../lib/format.js';
 import { COMPENSATION_LABELS, DAY_LABELS } from '../lib/constants.js';
 
@@ -14,6 +15,7 @@ export default function TeacherProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [month, setMonth] = useState(currentMonthKey());
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['teacher', id, month],
@@ -27,14 +29,19 @@ export default function TeacherProfilePage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/teachers')} aria-label="رجوع">
-          <Icon name="chevronRight" className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-semibold text-heading">{teacher.name}</h1>
-          <p className="mt-1 text-sm text-body">{teacher.subject}</p>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/teachers')} aria-label="رجوع">
+            <Icon name="chevronRight" className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-semibold text-heading">{teacher.name}</h1>
+            <p className="mt-1 text-sm text-body">{teacher.subject}</p>
+          </div>
         </div>
+        <Button variant="secondary" onClick={() => setEditOpen(true)}>
+          <Icon name="edit" className="h-4 w-4" /> تعديل البيانات
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -96,6 +103,10 @@ export default function TeacherProfilePage() {
           </TableWrap>
         )}
       </section>
+
+      {editOpen && (
+        <TeacherFormModal open={editOpen} editing={teacher} onClose={() => setEditOpen(false)} />
+      )}
     </div>
   );
 }

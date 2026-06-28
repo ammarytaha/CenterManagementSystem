@@ -15,7 +15,7 @@ import { formatEGP } from '../lib/format.js';
 
 const blank = { name: '', phone: '', subject: '', compensationType: 'salary', compensationValue: '' };
 
-function TeacherFormModal({ open, onClose, editing }) {
+export function TeacherFormModal({ open, onClose, editing }) {
   const qc = useQueryClient();
   const [form, setForm] = useState(() =>
     editing
@@ -32,6 +32,7 @@ function TeacherFormModal({ open, onClose, editing }) {
     onSuccess: () => {
       toast.success(editing ? 'تم تحديث بيانات المدرّس' : 'تمت إضافة المدرّس');
       qc.invalidateQueries({ queryKey: ['teachers'] });
+      qc.invalidateQueries({ queryKey: ['teacher'] });
       onClose();
     },
     onError: (err) => toast.error(apiError(err)),
