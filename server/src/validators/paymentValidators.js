@@ -22,3 +22,12 @@ export const paymentListQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional().default(1),
   pageSize: z.coerce.number().int().positive().max(100).optional().default(20),
 });
+
+export const updatePaymentSchema = z
+  .object({
+    amount: z.coerce.number().positive('المبلغ يجب أن يكون أكبر من صفر').optional(),
+    month: monthString.optional(),
+    method: method.optional(),
+    reference: z.string().nullable().optional(),
+  })
+  .refine((o) => Object.keys(o).length > 0, { message: 'لا توجد حقول للتعديل' });

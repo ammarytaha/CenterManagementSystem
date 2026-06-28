@@ -5,10 +5,11 @@ import toast from 'react-hot-toast';
 import { teachersApi } from '../api/resources.js';
 import { apiError } from '../api/client.js';
 import {
-  Button, Card, Field, Input, Select, Badge, Modal,
+  Button, Card, Field, Input, Select, Badge, Modal, ConfirmModal,
   TableWrap, Thead, Tbody, Tr, Th, Td, EmptyState, Spinner, PageHeader,
 } from '../components/ui/index.js';
 import { Icon } from '../components/icons.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { COMPENSATION_LABELS } from '../lib/constants.js';
 import { formatEGP } from '../lib/format.js';
 
@@ -83,9 +84,19 @@ function TeacherFormModal({ open, onClose, editing }) {
 
 export default function TeachersPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const isAdmin = user?.role === 'admin';
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const { data, isLoading } = useQuery({ queryKey: ['teachers'], queryFn: teachersApi.list });
+
+  const del = useMutation({
+    mutationFn: (id) => teachersApi.remove(id),
+    onSuccess: () => { toast.success('تم حذف المدرّس'); qc.invalidateQueries({ queryKey: ['teachers'] }); setDeleting(null); },
+    onError: (err) => toast.error(apiError(err)),
+  });
 
   return (
     <div>
@@ -125,9 +136,16 @@ export default function TeachersPage() {
                 </Td>
                 <Td>{t.groupCount}</Td>
                 <Td className="text-end" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setFormOpen(true); }} aria-label="تعديل">
-                    <Icon name="edit" className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setFormOpen(true); }} aria-label="تعديل">
+                      <Icon name="edit" className="h-4 w-4" />
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon" onClick={() => setDeleting(t)} aria-label="حذف">
+                        <Icon name="trash" className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </Td>
               </Tr>
             ))}
@@ -138,6 +156,15 @@ export default function TeachersPage() {
       {formOpen && (
         <TeacherFormModal key={editing?.id || 'new'} open={formOpen} editing={editing} onClose={() => setFormOpen(false)} />
       )}
+      <ConfirmModal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => del.mutate(deleting.id)}
+        loading={del.isPending}
+        title="حذف المدرّس"
+        message={`هل تريد حذف المدرّس «${deleting?.name}»؟ لا يمكن حذف مدرّس مرتبط بمجموعات.`}
+        confirmText="حذف"
+      />
     </div>
   );
 }

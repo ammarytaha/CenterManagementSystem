@@ -18,5 +18,6 @@ router.get('/', manage, ctrl.listTeachers);
 router.post('/', manage, validate(createTeacherSchema), ctrl.createTeacher);
 router.get('/:id', manage, validate(idParamSchema, 'params'), ctrl.getTeacher);
 router.put('/:id', manage, validate(idParamSchema, 'params'), validate(updateTeacherSchema), ctrl.updateTeacher);
+router.delete('/:id', requireRole('admin'), validate(idParamSchema, 'params'), ctrl.deleteTeacher);
 
 export default router;

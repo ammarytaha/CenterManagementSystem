@@ -21,6 +21,8 @@ export const studentsApi = {
   create: (payload) => data(api.post('/students', payload)),
   update: (id, payload) => data(api.put(`/students/${id}`, payload)),
   deactivate: (id) => data(api.patch(`/students/${id}/deactivate`)),
+  addSubscription: (id, payload) => data(api.post(`/students/${id}/subscriptions`, payload)),
+  removeSubscription: (id, subId) => data(api.delete(`/students/${id}/subscriptions/${subId}`)),
 };
 
 export const teachersApi = {
@@ -29,6 +31,7 @@ export const teachersApi = {
   me: (params) => data(api.get('/teachers/me', { params })),
   create: (payload) => data(api.post('/teachers', payload)),
   update: (id, payload) => data(api.put(`/teachers/${id}`, payload)),
+  remove: (id) => data(api.delete(`/teachers/${id}`)),
 };
 
 export const groupsApi = {
@@ -36,6 +39,7 @@ export const groupsApi = {
   get: (id) => data(api.get(`/groups/${id}`)),
   create: (payload) => data(api.post('/groups', payload)),
   update: (id, payload) => data(api.put(`/groups/${id}`, payload)),
+  remove: (id) => data(api.delete(`/groups/${id}`)),
 };
 
 export const attendanceApi = {
@@ -51,6 +55,8 @@ export const paymentsApi = {
   studentDue: (id) => data(api.get(`/payments/student/${id}/due`)),
   list: (params) => data(api.get('/payments', { params })),
   receipt: (id) => data(api.get(`/payments/${id}/receipt`)),
+  update: (id, payload) => data(api.put(`/payments/${id}`, payload)),
+  remove: (id) => data(api.delete(`/payments/${id}`)),
 };
 
 export const reportsApi = {

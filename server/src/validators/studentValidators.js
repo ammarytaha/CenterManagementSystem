@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { dateString } from './commonValidators.js';
 
 const status = z.enum(['active', 'inactive']);
 
@@ -21,4 +22,11 @@ export const studentListQuerySchema = z.object({
   status: status.optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   pageSize: z.coerce.number().int().positive().max(500).optional().default(20),
+});
+
+// Enroll a student into an additional group (multi-group subscriptions).
+export const addSubscriptionSchema = z.object({
+  groupId: z.coerce.number().int().positive('يجب اختيار مجموعة'),
+  monthlyFee: z.coerce.number().nonnegative().optional(),
+  startDate: dateString.optional(),
 });

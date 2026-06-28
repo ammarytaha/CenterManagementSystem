@@ -4,7 +4,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireRole } from '../middleware/requireRole.js';
 import { validate } from '../middleware/validate.js';
 import { idParamSchema } from '../validators/commonValidators.js';
-import { createPaymentSchema, paymentListQuerySchema } from '../validators/paymentValidators.js';
+import { createPaymentSchema, paymentListQuerySchema, updatePaymentSchema } from '../validators/paymentValidators.js';
 
 const router = Router();
 router.use(authenticate, requireRole('admin', 'assistant'));
@@ -15,5 +15,7 @@ router.get('/overdue', ctrl.overdue);
 router.get('/student/:id/due', validate(idParamSchema, 'params'), ctrl.studentDue);
 router.get('/:id/receipt', validate(idParamSchema, 'params'), ctrl.getReceipt);
 router.get('/', validate(paymentListQuerySchema, 'query'), ctrl.listPayments);
+router.put('/:id', requireRole('admin'), validate(idParamSchema, 'params'), validate(updatePaymentSchema), ctrl.updatePayment);
+router.delete('/:id', requireRole('admin'), validate(idParamSchema, 'params'), ctrl.deletePayment);
 
 export default router;

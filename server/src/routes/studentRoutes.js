@@ -8,6 +8,7 @@ import {
   createStudentSchema,
   updateStudentSchema,
   studentListQuerySchema,
+  addSubscriptionSchema,
 } from '../validators/studentValidators.js';
 
 const router = Router();
@@ -18,5 +19,7 @@ router.post('/', validate(createStudentSchema), ctrl.createStudent);
 router.get('/:id', validate(idParamSchema, 'params'), ctrl.getStudent);
 router.put('/:id', validate(idParamSchema, 'params'), validate(updateStudentSchema), ctrl.updateStudent);
 router.patch('/:id/deactivate', validate(idParamSchema, 'params'), ctrl.deactivateStudent);
+router.post('/:id/subscriptions', validate(idParamSchema, 'params'), validate(addSubscriptionSchema), ctrl.addSubscription);
+router.delete('/:id/subscriptions/:subId', ctrl.removeSubscription);
 
 export default router;

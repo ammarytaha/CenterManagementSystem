@@ -17,5 +17,6 @@ router.get('/', view, ctrl.listGroups);
 router.post('/', manage, validate(createGroupSchema), ctrl.createGroup);
 router.get('/:id', view, validate(idParamSchema, 'params'), ctrl.getGroup);
 router.put('/:id', manage, validate(idParamSchema, 'params'), validate(updateGroupSchema), ctrl.updateGroup);
+router.delete('/:id', requireRole('admin'), validate(idParamSchema, 'params'), ctrl.deleteGroup);
 
 export default router;

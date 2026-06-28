@@ -56,3 +56,9 @@ export const getGroup = asyncHandler(async (req, res) => {
   }));
   res.json({ group: groupData, students });
 });
+
+// DELETE /api/groups/:id  (admin — cascades subscriptions + attendance)
+export const deleteGroup = asyncHandler(async (req, res) => {
+  await prisma.group.delete({ where: { id: req.params.id } });
+  res.json({ message: 'تم حذف المجموعة' });
+});

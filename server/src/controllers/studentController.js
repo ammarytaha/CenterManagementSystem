@@ -109,3 +109,41 @@ export const deactivateStudent = asyncHandler(async (req, res) => {
   });
   res.json({ student });
 });
+
+// POST /api/students/:id/subscriptions  (enroll into another group)
+export const addSubscription = asyncHandler(async (req, res) => {
+  const studentId = req.params.id;
+  const { groupId, monthlyFee, startDate } = req.body;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+  if (!group) throw badRequest('المجموعة غير موجودة');
+
+  const subscription = await prisma.subscription.upsert({
+    where: { studentId_groupId: { studentId, groupId } },
+    create: {
+      studentId,
+      groupId,
+      monthlyFee: monthlyFee ?? group.monthlyFee,
+      startDate: startDate ? new Date(`${startDate}T00:00:00.000Z`) : today(),
+      status: 'active',
+    },
+    update: { status: 'active', ...(monthlyFee !== undefined ? { monthlyFee } : {}) },
+    include: { group: { select: { id: true, name: true, subject: true } } },
+  });
+  res.status(201).json({ subscription });
+});
+
+// DELETE /api/students/:id/subscriptions/:subId  (unenroll from a group)
+export const removeSubscription = asyncHandler(async (req, res) => {
+  const studentId = Number(req.params.id);
+  const subId = Number(req.params.subId);
+  if (!Number.isInteger(studentId) || !Number.isInteger(subId) || subId <= 0) {
+    throw badRequest('معرّف غير صالح');
+  }
+
+  const sub = await prisma.subscription.findUnique({ where: { id: subId } });
+  if (!sub || sub.studentId !== studentId) throw badRequest('الاشتراك غير موجود');
+
+  await prisma.subscription.delete({ where: { id: subId } });
+  res.json({ message: 'تم إلغاء الاشتراك' });
+});

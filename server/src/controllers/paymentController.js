@@ -108,3 +108,26 @@ export const getReceipt = asyncHandler(async (req, res) => {
   if (!payment) throw notFoundError('الإيصال غير موجود');
   res.json({ payment });
 });
+
+// PUT /api/payments/:id  (admin — correct a recorded payment)
+export const updatePayment = asyncHandler(async (req, res) => {
+  const data = {};
+  for (const k of ['amount', 'month', 'method', 'reference']) {
+    if (req.body[k] !== undefined) data[k] = req.body[k];
+  }
+  const payment = await prisma.payment.update({
+    where: { id: req.params.id },
+    data,
+    include: {
+      student: { select: { id: true, name: true } },
+      staff: { select: { id: true, name: true } },
+    },
+  });
+  res.json({ payment });
+});
+
+// DELETE /api/payments/:id  (admin — void a payment)
+export const deletePayment = asyncHandler(async (req, res) => {
+  await prisma.payment.delete({ where: { id: req.params.id } });
+  res.json({ message: 'تم حذف الدفعة' });
+});

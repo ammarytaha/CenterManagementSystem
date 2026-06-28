@@ -58,3 +58,14 @@ export const getMyProfile = asyncHandler(async (req, res) => {
   if (!id) throw badRequest('لا يوجد ملف مدرّس مرتبط بحسابك');
   res.json(await buildProfile(id, req.query.month));
 });
+
+// DELETE /api/teachers/:id  (admin — blocked while the teacher has groups)
+export const deleteTeacher = asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const groupCount = await prisma.group.count({ where: { teacherId: id } });
+  if (groupCount > 0) {
+    throw badRequest('لا يمكن حذف مدرّس مرتبط بمجموعات. انقل أو احذف مجموعاته أولًا');
+  }
+  await prisma.teacher.delete({ where: { id } });
+  res.json({ message: 'تم حذف المدرّس' });
+});

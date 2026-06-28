@@ -5,10 +5,11 @@ import toast from 'react-hot-toast';
 import { groupsApi, teachersApi } from '../api/resources.js';
 import { apiError } from '../api/client.js';
 import {
-  Button, Card, Field, Input, Select, Badge, Modal,
+  Button, Card, Field, Input, Select, Badge, Modal, ConfirmModal,
   TableWrap, Thead, Tbody, Tr, Th, Td, EmptyState, Spinner, PageHeader,
 } from '../components/ui/index.js';
 import { Icon } from '../components/icons.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { DAYS, DAY_LABELS } from '../lib/constants.js';
 import { formatEGP } from '../lib/format.js';
 
@@ -103,11 +104,21 @@ function GroupFormModal({ open, onClose, teachers, editing }) {
 
 export default function GroupsPage() {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const { data, isLoading } = useQuery({ queryKey: ['groups'], queryFn: groupsApi.list });
   const { data: teachersData } = useQuery({ queryKey: ['teachers'], queryFn: teachersApi.list });
   const teachers = teachersData?.teachers || [];
+
+  const del = useMutation({
+    mutationFn: (id) => groupsApi.remove(id),
+    onSuccess: () => { toast.success('تم حذف المجموعة'); qc.invalidateQueries({ queryKey: ['groups'] }); setDeleting(null); },
+    onError: (err) => toast.error(apiError(err)),
+  });
 
   return (
     <div>
@@ -152,9 +163,16 @@ export default function GroupsPage() {
                 <Td>{formatEGP(g.monthlyFee)}</Td>
                 <Td>{g.studentCount}</Td>
                 <Td className="text-end" onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(g); setFormOpen(true); }} aria-label="تعديل">
-                    <Icon name="edit" className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(g); setFormOpen(true); }} aria-label="تعديل">
+                      <Icon name="edit" className="h-4 w-4" />
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon" onClick={() => setDeleting(g)} aria-label="حذف">
+                        <Icon name="trash" className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </Td>
               </Tr>
             ))}
@@ -165,6 +183,15 @@ export default function GroupsPage() {
       {formOpen && (
         <GroupFormModal key={editing?.id || 'new'} open={formOpen} editing={editing} teachers={teachers} onClose={() => setFormOpen(false)} />
       )}
+      <ConfirmModal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => del.mutate(deleting.id)}
+        loading={del.isPending}
+        title="حذف المجموعة"
+        message={`هل تريد حذف المجموعة «${deleting?.name}»؟ سيتم إلغاء اشتراكات الطلاب وسجلات الحضور المرتبطة بها.`}
+        confirmText="حذف"
+      />
     </div>
   );
 }

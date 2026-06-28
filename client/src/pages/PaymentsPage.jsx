@@ -4,10 +4,11 @@ import toast from 'react-hot-toast';
 import { paymentsApi, studentsApi } from '../api/resources.js';
 import { apiError } from '../api/client.js';
 import {
-  Button, Card, Field, Input, Select, Badge, Modal,
+  Button, Card, Field, Input, Select, Badge, Modal, ConfirmModal,
   TableWrap, Thead, Tbody, Tr, Th, Td, Pagination, EmptyState, Spinner, PageHeader,
 } from '../components/ui/index.js';
 import { Icon } from '../components/icons.jsx';
+import { useAuth } from '../auth/AuthContext.jsx';
 import { PAYMENT_METHOD_LABELS } from '../lib/constants.js';
 import { formatEGP, formatDate, formatMonthKey, currentMonthKey } from '../lib/format.js';
 
@@ -176,13 +177,71 @@ function OverdueTab({ onPick }) {
   );
 }
 
+// Admin-only payment correction.
+function EditPaymentModal({ payment, onClose }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    amount: String(payment.amount), month: payment.month, method: payment.method, reference: payment.reference || '',
+  });
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const mutation = useMutation({
+    mutationFn: () => paymentsApi.update(payment.id, {
+      amount: Number(form.amount), month: form.month, method: form.method, reference: form.reference || null,
+    }),
+    onSuccess: () => {
+      toast.success('تم تعديل الدفعة');
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['payment-overdue'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      onClose();
+    },
+    onError: (err) => toast.error(apiError(err)),
+  });
+  return (
+    <Modal open onClose={onClose} title="تعديل الدفعة"
+      footer={<><Button variant="ghost" onClick={onClose}>إلغاء</Button><Button onClick={() => mutation.mutate()} loading={mutation.isPending}>حفظ</Button></>}>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="الشهر" htmlFor="e-month"><Input id="e-month" type="month" dir="ltr" value={form.month} onChange={set('month')} /></Field>
+          <Field label="المبلغ (ج.م)" htmlFor="e-amount"><Input id="e-amount" type="number" min="0" step="0.01" dir="ltr" value={form.amount} onChange={set('amount')} /></Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="طريقة الدفع" htmlFor="e-method">
+            <Select id="e-method" value={form.method} onChange={set('method')}>
+              {METHODS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+            </Select>
+          </Field>
+          <Field label="مرجع التحويل" htmlFor="e-ref"><Input id="e-ref" dir="ltr" value={form.reference} onChange={set('reference')} /></Field>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 const PAGE_SIZE = 10;
 function HistoryTab({ onReceipt }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const isAdmin = user?.role === 'admin';
   const [page, setPage] = useState(1);
   const [method, setMethod] = useState('');
   const [month, setMonth] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [voiding, setVoiding] = useState(null);
   const params = { page, pageSize: PAGE_SIZE, ...(method ? { method } : {}), ...(month ? { month } : {}) };
   const { data, isLoading } = useQuery({ queryKey: ['payments', params], queryFn: () => paymentsApi.list(params) });
+
+  const voidPayment = useMutation({
+    mutationFn: (id) => paymentsApi.remove(id),
+    onSuccess: () => {
+      toast.success('تم حذف الدفعة');
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['payment-overdue'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+      setVoiding(null);
+    },
+    onError: (err) => toast.error(apiError(err)),
+  });
 
   return (
     <>
@@ -212,7 +271,15 @@ function HistoryTab({ onReceipt }) {
                   <Td className="font-medium text-heading">{formatEGP(p.amount)}</Td>
                   <Td>{PAYMENT_METHOD_LABELS[p.method]}</Td>
                   <Td className="text-end">
-                    <Button variant="ghost" size="sm" onClick={() => onReceipt(p)}><Icon name="print" className="h-4 w-4" /> إيصال</Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => onReceipt(p)}><Icon name="print" className="h-4 w-4" /> إيصال</Button>
+                      {isAdmin && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => setEditing(p)} aria-label="تعديل"><Icon name="edit" className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => setVoiding(p)} aria-label="حذف"><Icon name="trash" className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                    </div>
                   </Td>
                 </Tr>
               ))}
@@ -221,6 +288,16 @@ function HistoryTab({ onReceipt }) {
           <Pagination page={page} pageSize={PAGE_SIZE} total={data.total} onPage={setPage} />
         </>
       )}
+      {editing && <EditPaymentModal payment={editing} onClose={() => setEditing(null)} />}
+      <ConfirmModal
+        open={!!voiding}
+        onClose={() => setVoiding(null)}
+        onConfirm={() => voidPayment.mutate(voiding.id)}
+        loading={voidPayment.isPending}
+        title="حذف الدفعة"
+        message={`هل تريد حذف دفعة ${voiding ? formatEGP(voiding.amount) : ''} للطالب «${voiding?.student?.name}»؟`}
+        confirmText="حذف"
+      />
     </>
   );
 }
